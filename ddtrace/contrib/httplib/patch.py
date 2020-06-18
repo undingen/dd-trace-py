@@ -157,5 +157,5 @@ def unpatch():
 
     _u(httplib.HTTPConnection, '__init__')
     _u(httplib.HTTPConnection, 'getresponse')
-    _u(httplib.HTTPConnection, 'putrequest')
+    _u(httplib.HTTPConnection, 'request')
     _u(httplib.HTTPConnection, 'putheader')
