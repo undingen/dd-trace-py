@@ -67,11 +67,36 @@ def _wrap_request(func, instance, args, kwargs):
         span = pin.tracer.trace(span_name, span_type=SpanTypes.HTTP)
         setattr(instance, '_datadog_span', span)
 
-        if args:
-            method, path = args[:2]
+        # propagate distributed tracing headers
+        if cfg.get("distributed_tracing"):
+            if len(args) > 3:
+                headers = args[3]
+            else:
+                headers = kwargs.setdefault('headers', {})
+            propagator = HTTPPropagator()
+            propagator.inject(span.context, headers)
+
+    except Exception:
+        log.debug('error configuring request', exc_info=True)
+    return func(*args, **kwargs)
+
+
+def _wrap_putrequest(func, instance, args, kwargs):
+    # Use any attached tracer if available, otherwise use the global tracer
+    pin = Pin.get_from(instance)
+    if should_skip_request(pin, instance):
+        return func(*args, **kwargs)
+
+    try:
+        if hasattr(instance, '_datadog_span'):
+            # Reuse an existing span set in _wrap_request
+            span = instance._datadog_span
         else:
-            method = kwargs['method']
-            path = kwargs['url']
+            # Create a new span and attach to this instance (so we can retrieve/update/close later on the response)
+            span = pin.tracer.trace(span_name, span_type=SpanTypes.HTTP)
+            setattr(instance, '_datadog_span', span)
+
+        method, path = args[:2]
         scheme = 'https' if isinstance(instance, httplib.HTTPSConnection) else 'http'
         port = ':{port}'.format(port=instance.port)
 
@@ -100,16 +125,6 @@ def _wrap_request(func, instance, args, kwargs):
             ANALYTICS_SAMPLE_RATE_KEY,
             config.httplib.get_analytics_sample_rate()
         )
-
-        # propagate distributed tracing headers
-        if cfg.get("distributed_tracing"):
-            if len(args) > 3:
-                headers = args[3]
-            else:
-                headers = kwargs.setdefault('headers', {})
-            propagator = HTTPPropagator()
-            propagator.inject(span.context, headers)
-
     except Exception:
         log.debug('error applying request tags', exc_info=True)
     return func(*args, **kwargs)
@@ -145,6 +160,8 @@ def patch():
             wrapt.FunctionWrapper(httplib.HTTPConnection.getresponse, _wrap_getresponse))
     setattr(httplib.HTTPConnection, 'request',
             wrapt.FunctionWrapper(httplib.HTTPConnection.request, _wrap_request))
+    setattr(httplib.HTTPConnection, 'putrequest',
+            wrapt.FunctionWrapper(httplib.HTTPConnection.putrequest, _wrap_putrequest))
     setattr(httplib.HTTPConnection, 'putheader',
             wrapt.FunctionWrapper(httplib.HTTPConnection.putheader, _wrap_putheader))
 
@@ -158,4 +175,5 @@ def unpatch():
     _u(httplib.HTTPConnection, '__init__')
     _u(httplib.HTTPConnection, 'getresponse')
     _u(httplib.HTTPConnection, 'request')
+    _u(httplib.HTTPConnection, 'putrequest')
     _u(httplib.HTTPConnection, 'putheader')
