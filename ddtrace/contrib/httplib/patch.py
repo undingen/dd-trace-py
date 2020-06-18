@@ -106,7 +106,7 @@ def _wrap_request(func, instance, args, kwargs):
             if len(args) > 3:
                 headers = args[3]
             else:
-                headers = kwargs['headers']
+                headers = kwargs.setdefault('headers', {})
             propagator = HTTPPropagator()
             propagator.inject(span.context, headers)
 
