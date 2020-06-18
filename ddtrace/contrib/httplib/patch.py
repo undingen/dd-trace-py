@@ -1,8 +1,6 @@
 # Third party
 from ddtrace.vendor import wrapt
 
-from ddtrace import config
-
 # Project
 from ...compat import PY2, httplib, parse
 from ...constants import ANALYTICS_SAMPLE_RATE_KEY
