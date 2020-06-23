@@ -1,9 +1,7 @@
 # Standard library
 import contextlib
-import sys
 
 # Project
-from ddtrace import config
 from ddtrace.compat import httplib
 from ddtrace.pin import Pin
 from ddtrace.vendor import wrapt
@@ -43,7 +41,7 @@ class TestHTTPLibDistributed(HTTPLibBaseMixin, BaseTracerTestCase):
         with contextlib.closing(conn):
             conn.send = wrapt.FunctionWrapper(conn.send, self.send)
             conn.request('POST', '/status/200', body='key=value')
-            resp = conn.getresponse()
+            conn.getresponse()
 
         spans = self.tracer.writer.pop()
         self.assertEqual(len(spans), 1)
@@ -56,9 +54,8 @@ class TestHTTPLibDistributed(HTTPLibBaseMixin, BaseTracerTestCase):
             with contextlib.closing(conn):
                 conn.send = wrapt.FunctionWrapper(conn.send, self.send)
                 conn.request('POST', '/status/200', body='key=value')
-                resp = conn.getresponse()
+                conn.getresponse()
 
         spans = self.tracer.writer.pop()
         self.assertEqual(len(spans), 1)
-        span = spans[0]
         assert self.headers_not_here(self.tracer)
