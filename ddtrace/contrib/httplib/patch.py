@@ -19,7 +19,7 @@ log = get_logger(__name__)
 
 
 config._add('httplib', {
-    'distributed_tracing': asbool(get_env('httplib', 'distributed_tracing', default=True)),
+    'distributed_tracing': asbool(get_env('httplib', 'distributed_tracing', default=False)),
 })
 
 
