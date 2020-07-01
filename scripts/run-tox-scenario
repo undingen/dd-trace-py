@@ -1,8 +1,40 @@
 #!/usr/bin/env bash
 set -e
+
+shopt -s nullglob
+
 PATTERN="$1"
 shift
 
-# CircleCI has a bug in its workspace code where it can't handle filenames with some chars
-CLEANED_PATTERN=`echo $PATTERN | tr '^?()$' '_'`
-exec tox -l | grep "$PATTERN" | tr '\n' ',' | xargs -I ARGS tox --result-json /tmp/"$CLEANED_PATTERN".results -e ARGS -- $@
+MACHINE=`uname -m`
+
+for env in $(tox -l | grep "$PATTERN")
+do
+    # CircleCI has a bug in its workspace code where it can't handle filenames with some chars
+    CLEANED_PATTERN=`echo ${env} | tr '^?()$' '_'`
+
+    # Check if wheel available
+    OPT_INSTALLPKG=""
+    if [ -n "$TEST_USE_WHEELS" ]; then
+        CP=`echo $env | sed 's/.*py\(..\)-.*/cp\1/'`
+
+        if [ $CP = "cp27" ]; then
+            # use wide-unicode build for python 2.7
+            CP="${CP}mu"
+        fi
+
+        wheels=(dist/*${CP}*${MACHINE}.whl)
+
+        if [ ${#wheels[@]} -gt 1 ]; then
+            echo "Skipping wheels, multiple found"
+        elif [ ${#wheels[@]} -eq 0 ]; then
+            echo "Skipping wheels, none found"
+        else
+            OPT_INSTALLPKG="--installpkg ${wheels[0]}"
+        fi
+    fi
+
+    CMD="tox --result-json /tmp/${CLEANED_PATTERN}.results -v -e ${env} ${OPT_INSTALLPKG} -- $@"
+    echo $CMD
+    eval $CMD
+done

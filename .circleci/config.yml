@@ -121,6 +121,8 @@ commands:
         default: ""
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - setup_tox
       - restore_tox_cache
       - when:
@@ -133,6 +135,8 @@ commands:
       - run:
           name: "Run scripts/run-tox-scenario"
           command: scripts/run-tox-scenario '<< parameters.pattern >>'
+          environment:
+            TEST_USE_WHEELS: 1
       - save_results
       - save_tox_cache
 
@@ -720,6 +724,10 @@ jobs:
       - *pyenv-set-global
       - run: pip install cython
       - run: scripts/build-dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - "dist/*.whl"
 
   deploy_master:
     # build the master branch releasing development docs and wheels
@@ -801,6 +809,10 @@ requires_pre_test: &requires_pre_test
     - black
     - flake8
 
+requires_wheels: &requires_wheels
+  requires:
+    - build_wheels
+
 workflows:
   version: 2
 
@@ -835,64 +847,70 @@ workflows:
       - test_build_win_py37: *requires_pre_test
       - test_build_win_py36: *requires_pre_test
       - test_build_win_py35: *requires_pre_test
-      - build_wheels: *requires_pre_test
+      - build_wheels:
+          requires:
+            - test_build_py38
+            - test_build_py37
+            - test_build_py36
+            - test_build_py35
+            - test_build_py27
 
       # Integration test suites
-      - aiobotocore: *requires_pre_test
-      - aiohttp: *requires_pre_test
-      - aiopg: *requires_pre_test
-      - asyncio: *requires_pre_test
-      - algoliasearch: *requires_pre_test
-      - benchmarks: *requires_pre_test
-      - boto: *requires_pre_test
-      - bottle: *requires_pre_test
-      - cassandra: *requires_pre_test
-      - celery: *requires_pre_test
-      - consul: *requires_pre_test
-      - dbapi: *requires_pre_test
-      - ddtracerun: *requires_pre_test
-      - django: *requires_pre_test
-      - djangorestframework: *requires_pre_test
-      - dogpile_cache: *requires_pre_test
-      - elasticsearch: *requires_pre_test
-      - falcon: *requires_pre_test
-      - flask: *requires_pre_test
-      - futures: *requires_pre_test
-      - gevent: *requires_pre_test
-      - grpc: *requires_pre_test
-      - httplib: *requires_pre_test
-      - integration: *requires_pre_test
-      - internal: *requires_pre_test
-      - profile: *requires_pre_test
-      - jinja2: *requires_pre_test
-      - kombu: *requires_pre_test
-      - mako: *requires_pre_test
-      - molten: *requires_pre_test
-      - mongoengine: *requires_pre_test
-      - mysqlconnector: *requires_pre_test
-      - mysqldb: *requires_pre_test
-      - mysqlpython: *requires_pre_test
-      - opentracer: *requires_pre_test
-      - psycopg: *requires_pre_test
-      - pylibmc: *requires_pre_test
-      - pylons: *requires_pre_test
-      - pymemcache: *requires_pre_test
-      - pymongo: *requires_pre_test
-      - pymysql: *requires_pre_test
-      - pyramid: *requires_pre_test
-      - redis: *requires_pre_test
-      - rediscluster: *requires_pre_test
-      - requests: *requires_pre_test
-      - requestsgevent: *requires_pre_test
-      - sqlalchemy: *requires_pre_test
-      - sqlite3: *requires_pre_test
-      - test_utils: *requires_pre_test
-      - test_logging: *requires_pre_test
-      - tornado: *requires_pre_test
+      - aiobotocore: *requires_wheels
+      - aiohttp: *requires_wheels
+      - aiopg: *requires_wheels
+      - asyncio: *requires_wheels
+      - algoliasearch: *requires_wheels
+      - benchmarks: *requires_wheels
+      - boto: *requires_wheels
+      - bottle: *requires_wheels
+      - cassandra: *requires_wheels
+      - celery: *requires_wheels
+      - consul: *requires_wheels
+      - dbapi: *requires_wheels
+      - ddtracerun: *requires_wheels
+      - django: *requires_wheels
+      - djangorestframework: *requires_wheels
+      - dogpile_cache: *requires_wheels
+      - elasticsearch: *requires_wheels
+      - falcon: *requires_wheels
+      - flask: *requires_wheels
+      - futures: *requires_wheels
+      - gevent: *requires_wheels
+      - grpc: *requires_wheels
+      - httplib: *requires_wheels
+      - integration: *requires_wheels
+      - internal: *requires_wheels
+      - profile: *requires_wheels
+      - jinja2: *requires_wheels
+      - kombu: *requires_wheels
+      - mako: *requires_wheels
+      - molten: *requires_wheels
+      - mongoengine: *requires_wheels
+      - mysqlconnector: *requires_wheels
+      - mysqldb: *requires_wheels
+      - mysqlpython: *requires_wheels
+      - opentracer: *requires_wheels
+      - psycopg: *requires_wheels
+      - pylibmc: *requires_wheels
+      - pylons: *requires_wheels
+      - pymemcache: *requires_wheels
+      - pymongo: *requires_wheels
+      - pymysql: *requires_wheels
+      - pyramid: *requires_wheels
+      - redis: *requires_wheels
+      - rediscluster: *requires_wheels
+      - requests: *requires_wheels
+      - requestsgevent: *requires_wheels
+      - sqlalchemy: *requires_wheels
+      - sqlite3: *requires_wheels
+      - test_utils: *requires_wheels
+      - test_logging: *requires_wheels
+      - tornado: *requires_wheels
       # tracer
-      - tracer: *requires_pre_test
-      - unit_tests: *requires_pre_test
-      - vertica: *requires_pre_test
+      - tracer: *requires_wheels
+      - unit_tests: *requires_wheels
+      - vertica: *requires_wheels
       - build-docker-ci-image: *requires_pre_test
       - verify_all_tests_ran:
           requires:
@@ -954,6 +972,10 @@ workflows:
             - test_build_py36
             - test_build_py35
             - test_build_py27
+            - test_build_win_py38
+            - test_build_win_py37
+            - test_build_win_py36
+            - test_build_win_py35
             - test_utils
             - test_logging
             - tracer
