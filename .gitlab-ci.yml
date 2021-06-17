@@ -8,7 +8,7 @@ variables:
   FORCE_TRIGGER:
     value: "false"
     description: "Set to true to override rules in the reliability-env pipeline (e.g. override 'only deploy master')"
-    
+
 .common: &common
   tags: [ "runner:main", "size:large" ]
 
@@ -24,3 +24,16 @@ deploy_to_reliability_env:
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
     FORCE_TRIGGER: $FORCE_TRIGGER
+
+deploy_ci_image:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: on_success
+    - when: manual
+      allow_failure: true
+  tags: ["runner:docker", "size:large"]
+  image: $REGISTRY/docker:18.03.1
+  script:
+    - docker build --tag registry.ddbuild.io/dd-trace-py/benchmarks-django-simple:latest benchamrks/docker/django_simple/
+    - docker push registry.ddbuild.io/registry.ddbuild.io/dd-trace-py/benchmarks-django-simple:latest
