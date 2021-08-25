@@ -52,6 +52,11 @@ COPY ./bm/ /app/bm/
 # Add scenario code, overriding anything from base
 COPY ./${SCENARIO}/ /app/
 
+# Include step to install any additional packages for a scenario
+RUN if [[ -f "/app/install.sh" ]] ; then ./install.sh ; fi
+
+RUN pip install -r requirements.txt
+
 ENV SCENARIO=${SCENARIO}
 
 ENTRYPOINT ["/app/entrypoint"]
