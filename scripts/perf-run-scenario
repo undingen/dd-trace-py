@@ -50,7 +50,7 @@ fi
 
 if [[ -n ${ARTIFACTS} ]]; then
    # Resolve artifacts to an absolute path
-   ARTIFACTS="$(echo $ARTIFACTS | python -c 'import os,sys; print(os.path.abspath(sys.stdin.read()))')"
+   ARTIFACTS="$(realpath $ARTIFACTS)"
    mkdir -p ${ARTIFACTS}
    docker run --rm \
           ${DOCKER_RUN_OPTS} \
