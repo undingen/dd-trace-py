@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -ex
 
+# Include step to install any additional packages for a scenario
+if [[ -f "/app/install.sh" ]]; then
+    /app/install.sh
+fi
+
 pip install ${DDTRACE_INSTALL}
 export DDTRACE_VERSION=$(python -c "import ddtrace; print(ddtrace.__version__)")
 
