@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import itertools
 import os
 import subprocess
@@ -732,6 +733,30 @@ def test_cache_get(test_spans):
     assert_dict_issuperset(span._get_tags(), expected_meta)
 
 
+def test_cache_get_unicode(test_spans):
+    # get the default cache
+    cache = django.core.cache.caches["default"]
+
+    cache.get(u"😐")
+
+    spans = test_spans.get_spans()
+    assert len(spans) == 1
+
+    span = spans[0]
+    assert span.service == "django"
+    assert span.resource == "django.core.cache.backends.locmem.get"
+    assert span.name == "django.cache"
+    assert span.span_type == "cache"
+    assert span.error == 0
+
+    expected_meta = {
+        "django.cache.backend": "django.core.cache.backends.locmem.LocMemCache",
+        "django.cache.key": u"😐",
+    }
+
+    assert_dict_issuperset(span._get_tags(), expected_meta)
+
+
 def test_cache_set(test_spans):
     # get the default cache
     cache = django.core.cache.caches["default"]
@@ -957,7 +982,7 @@ def test_cache_get_many(test_spans):
 
     expected_meta = {
         "django.cache.backend": "django.core.cache.backends.locmem.LocMemCache",
-        "django.cache.key": str(["missing_key", "another_key"]),
+        "django.cache.key": "missing_key another_key",
     }
 
     assert_dict_issuperset(span_get_many._get_tags(), expected_meta)
@@ -994,8 +1019,13 @@ def test_cache_set_many(test_spans):
     assert span_set_many.error == 0
 
     assert span_set_many.get_tag("django.cache.backend") == "django.core.cache.backends.locmem.LocMemCache"
-    assert "first_key" in span_set_many.get_tag("django.cache.key")
-    assert "second_key" in span_set_many.get_tag("django.cache.key")
+
+    # Ordering of `dict.keys()` is undeterministic
+    cache_key = span_set_many.get_tag("django.cache.key")
+    if cache_key.startswith("first_key"):
+        assert cache_key == "first_key second_key"
+    else:
+        assert cache_key == "second_key first_key"
 
 
 def test_cache_delete_many(test_spans):
@@ -1028,9 +1058,12 @@ def test_cache_delete_many(test_spans):
     assert span_delete_many.span_type == "cache"
     assert span_delete_many.error == 0
 
-    assert span_delete_many.get_tag("django.cache.backend") == "django.core.cache.backends.locmem.LocMemCache"
-    assert "missing_key" in span_delete_many.get_tag("django.cache.key")
-    assert "another_key" in span_delete_many.get_tag("django.cache.key")
+    expected_meta = {
+        "django.cache.backend": "django.core.cache.backends.locmem.LocMemCache",
+        "django.cache.key": "missing_key another_key",
+    }
+
+    assert_dict_issuperset(span_delete_many._get_tags(), expected_meta)
 
 
 @pytest.mark.django_db
@@ -1071,8 +1104,7 @@ def test_cached_view(client, test_spans):
     expected_meta_view = {
         "django.cache.backend": "django.core.cache.backends.locmem.LocMemCache",
         "django.cache.key": (
-            "views.decorators.cache.cache_page.."
-            "GET.03cdc1cc4aab71b038a6764e5fcabb82.d41d8cd98f00b204e9800998ecf8427e.en-us"
+            "views.decorators.cache.cache_page..GET.03cdc1cc4aab71b038a6764e5fcabb82.d41d8cd98f00b204e9800998ecf8..."
         ),
     }
 
