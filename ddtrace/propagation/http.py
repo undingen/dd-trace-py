@@ -88,6 +88,7 @@ def _dd_id_to_b3_id(dd_id):
 def _inject_datadog(span_context, headers):
     # type: (Context, Dict[str, str]) -> None
     if span_context.trace_id is None or span_context.span_id is None:
+        log.debug("tried to inject invalid context %r", span_context)
         return
 
     headers[HTTP_HEADER_TRACE_ID] = str(span_context.trace_id)
@@ -139,7 +140,6 @@ def _extract_datadog(headers):
             sampling_priority=sampling_priority,  # type: ignore[arg-type]
             dd_origin=origin,
         )
-    # If headers are invalid and cannot be parsed, return a new context and log the issue.
     except (TypeError, ValueError):
         log.debug(
             "received invalid x-datadog-* headers, " "trace-id: %r, parent-id: %r, priority: %r, origin: %r",
@@ -155,6 +155,7 @@ def _inject_b3(span_context, headers):
     # type: (Context, Dict[str, str]) -> None
     # We are allowed to propagate only the sampling priority
     if span_context.trace_id is None or span_context.span_id is None:
+        log.debug("tried to inject invalid context %r", span_context)
         return
 
     headers[HTTP_HEADER_B3_TRACE_ID] = _dd_id_to_b3_id(span_context.trace_id)
@@ -213,12 +214,10 @@ def _extract_b3(headers):
             sampling_priority = USER_KEEP
 
         return Context(
-            # DEV: Do not allow `0` for trace id or span id, use None instead
             trace_id=trace_id,
             span_id=span_id,
             sampling_priority=sampling_priority,
         )
-    # If headers are invalid and cannot be parsed, return a new context and log the issue.
     except (TypeError, ValueError):
         log.debug(
             "received invalid x-b3-* headers, " "trace-id: %r, span-id: %r, sampled: %r, flags: %r",
@@ -233,6 +232,7 @@ def _extract_b3(headers):
 def _inject_b3_single_header(span_context, headers):
     # type: (Context, Dict[str, str]) -> None
     if span_context.trace_id is None or span_context.span_id is None:
+        log.debug("tried to inject invalid context %r", span_context)
         return
 
     single_header = "{}-{}".format(_dd_id_to_b3_id(span_context.trace_id), _dd_id_to_b3_id(span_context.span_id))
@@ -282,7 +282,7 @@ def _extract_b3_single_header(headers):
                 sampling_priority = AUTO_REJECT
             elif sampled == "1":
                 sampling_priority = AUTO_KEEP
-            if sampled == "d":
+            elif sampled == "d":
                 sampling_priority = USER_KEEP
 
         return Context(
@@ -290,7 +290,6 @@ def _extract_b3_single_header(headers):
             span_id=span_id,
             sampling_priority=sampling_priority,
         )
-    # If headers are invalid and cannot be parsed, return a new context and log the issue.
     except (TypeError, ValueError):
         log.debug(
             "received invalid b3 header, b3: %r",
@@ -323,7 +322,8 @@ class HTTPPropagator(object):
         :param dict headers: HTTP headers to extend with tracing attributes.
         """
         # Not a valid context to propagate
-        if not span_context.trace_id or not span_context.span_id:
+        if span_context.trace_id is None or span_context.span_id is None:
+            log.debug("tried to inject invalid context %r", span_context)
             return
 
         if PROPAGATION_STYLE_DATADOG in config.propagation_style_inject:

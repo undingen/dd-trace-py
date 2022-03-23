@@ -8,6 +8,7 @@ from ddtrace.constants import PROPAGATION_STYLE_ALL
 from ddtrace.constants import PROPAGATION_STYLE_B3
 from ddtrace.constants import PROPAGATION_STYLE_B3_SINGLE_HEADER
 from ddtrace.constants import PROPAGATION_STYLE_DATADOG
+from ddtrace.context import Context
 from ddtrace.propagation._utils import get_wsgi_header
 from ddtrace.propagation.http import HTTPPropagator
 from ddtrace.propagation.http import HTTP_HEADER_B3_FLAGS
@@ -19,6 +20,8 @@ from ddtrace.propagation.http import HTTP_HEADER_ORIGIN
 from ddtrace.propagation.http import HTTP_HEADER_PARENT_ID
 from ddtrace.propagation.http import HTTP_HEADER_SAMPLING_PRIORITY
 from ddtrace.propagation.http import HTTP_HEADER_TRACE_ID
+
+from ..utils import override_global_config
 
 
 NOT_SET = object()
@@ -72,7 +75,7 @@ CONTEXT_EMPTY = {
     "trace_id": None,
     "span_id": None,
     "sampling_priority": None,
-    "origin": None,
+    "dd_origin": None,
 }
 DATADOG_HEADERS_VALID = {
     HTTP_HEADER_TRACE_ID: "13088165645273925489",
@@ -118,7 +121,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -129,7 +132,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -146,7 +149,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -157,7 +160,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -168,7 +171,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -186,7 +189,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -197,7 +200,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -212,7 +215,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 2,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -221,14 +224,41 @@ EXTRACT_FIXTURES = [
         {
             HTTP_HEADER_B3_TRACE_ID: B3_HEADERS_VALID[HTTP_HEADER_B3_TRACE_ID],
             HTTP_HEADER_B3_SPAN_ID: B3_HEADERS_VALID[HTTP_HEADER_B3_SPAN_ID],
-            HTTP_HEADER_B3_SAMPLED: B3_HEADERS_VALID[HTTP_HEADER_B3_SAMPLED],
+            HTTP_HEADER_B3_SAMPLED: "0",
             "X-B3-ParentSpanId": "05e3ac9a4f6e3b90",
         },
         {
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
-            "sampling_priority": 1,
-            "origin": None,
+            "sampling_priority": 0,
+            "dd_origin": None,
+        },
+    ),
+    (
+        "valid_b3_only_trace_and_span_id",
+        [PROPAGATION_STYLE_B3],
+        {
+            HTTP_HEADER_B3_TRACE_ID: B3_HEADERS_VALID[HTTP_HEADER_B3_TRACE_ID],
+            HTTP_HEADER_B3_SPAN_ID: B3_HEADERS_VALID[HTTP_HEADER_B3_SPAN_ID],
+        },
+        {
+            "trace_id": 5208512171318403364,
+            "span_id": 11744061942159299346,
+            "sampling_priority": None,
+            "dd_origin": None,
+        },
+    ),
+    (
+        "valid_b3_only_trace_id",
+        [PROPAGATION_STYLE_B3],
+        {
+            HTTP_HEADER_B3_TRACE_ID: B3_HEADERS_VALID[HTTP_HEADER_B3_TRACE_ID],
+        },
+        {
+            "trace_id": 5208512171318403364,
+            "span_id": None,
+            "sampling_priority": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -257,7 +287,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     # B3 single header
@@ -269,7 +299,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 7277407061855694839,
             "span_id": 16453819474850114513,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -282,7 +312,46 @@ EXTRACT_FIXTURES = [
             "trace_id": 7277407061855694839,
             "span_id": 16453819474850114513,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
+        },
+    ),
+    (
+        "valid_b3_single_header_simple",
+        [PROPAGATION_STYLE_B3_SINGLE_HEADER],
+        {
+            get_wsgi_header(HTTP_HEADER_B3_SINGLE): B3_SINGLE_HEADERS_VALID[HTTP_HEADER_B3_SINGLE],
+        },
+        {
+            "trace_id": 7277407061855694839,
+            "span_id": 16453819474850114513,
+            "sampling_priority": 1,
+            "dd_origin": None,
+        },
+    ),
+    (
+        "valid_b3_single_header_only_sampled",
+        [PROPAGATION_STYLE_B3_SINGLE_HEADER],
+        {
+            HTTP_HEADER_B3_SINGLE: "1",
+        },
+        {
+            "trace_id": None,
+            "span_id": None,
+            "sampling_priority": 1,
+            "dd_origin": None,
+        },
+    ),
+    (
+        "valid_b3_single_header_only_trace_and_span_id",
+        [PROPAGATION_STYLE_B3_SINGLE_HEADER],
+        {
+            HTTP_HEADER_B3_SINGLE: "80f198ee56343ba864fe8b2a57d3eff7-e457b5a2e4d86bd1",
+        },
+        {
+            "trace_id": 7277407061855694839,
+            "span_id": 16453819474850114513,
+            "sampling_priority": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -299,7 +368,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 7277407061855694839,
             "span_id": 16453819474850114513,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -310,7 +379,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 7277407061855694839,
             "span_id": 16453819474850114513,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -334,7 +403,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -346,7 +415,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -358,7 +427,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -369,7 +438,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -380,7 +449,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 13088165645273925489,
             "span_id": 5678,
             "sampling_priority": 1,
-            "origin": "synthetics",
+            "dd_origin": "synthetics",
         },
     ),
     (
@@ -391,7 +460,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -402,7 +471,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -414,7 +483,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 5208512171318403364,
             "span_id": 11744061942159299346,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -425,7 +494,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 7277407061855694839,
             "span_id": 16453819474850114513,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -436,7 +505,7 @@ EXTRACT_FIXTURES = [
             "trace_id": 7277407061855694839,
             "span_id": 16453819474850114513,
             "sampling_priority": 1,
-            "origin": None,
+            "dd_origin": None,
         },
     ),
     (
@@ -471,7 +540,7 @@ else:
       "trace_id": context.trace_id,
       "span_id": context.span_id,
       "sampling_priority": context.sampling_priority,
-      "origin": context.dd_origin,
+      "dd_origin": context.dd_origin,
     }}))
     """.format(
         headers
@@ -487,6 +556,15 @@ else:
     result = json.loads(stdout.decode())
     assert result == expected_context
 
+    # Setting via ddtrace.config works as expected too
+    # DEV: This also helps us get code coverage reporting
+    overrides = {}
+    if styles is not None:
+        overrides["propagation_style_extract"] = set(styles)
+    with override_global_config(overrides):
+        context = HTTPPropagator.extract(headers)
+        assert context == Context(**expected_context)
+
 
 VALID_DATADOG_CONTEXT = {
     "trace_id": 13088165645273925489,
@@ -498,6 +576,11 @@ VALID_USER_KEEP_CONTEXT = {
     "trace_id": 13088165645273925489,
     "span_id": 8185124618007618416,
     "sampling_priority": 2,
+}
+VALID_AUTO_REJECT_CONTEXT = {
+    "trace_id": 13088165645273925489,
+    "span_id": 8185124618007618416,
+    "sampling_priority": 0,
 }
 INJECT_FIXTURES = [
     # No style defined
@@ -561,6 +644,16 @@ INJECT_FIXTURES = [
         },
     ),
     (
+        "valid_default_style_auto_reject",
+        None,
+        VALID_AUTO_REJECT_CONTEXT,
+        {
+            HTTP_HEADER_TRACE_ID: "13088165645273925489",
+            HTTP_HEADER_PARENT_ID: "8185124618007618416",
+            HTTP_HEADER_SAMPLING_PRIORITY: "0",
+        },
+    ),
+    (
         "valid_datadog_style",
         [PROPAGATION_STYLE_DATADOG],
         VALID_DATADOG_CONTEXT,
@@ -579,6 +672,16 @@ INJECT_FIXTURES = [
             HTTP_HEADER_TRACE_ID: "13088165645273925489",
             HTTP_HEADER_PARENT_ID: "8185124618007618416",
             HTTP_HEADER_SAMPLING_PRIORITY: "2",
+        },
+    ),
+    (
+        "valid_datadog_style_auto_reject",
+        None,
+        VALID_AUTO_REJECT_CONTEXT,
+        {
+            HTTP_HEADER_TRACE_ID: "13088165645273925489",
+            HTTP_HEADER_PARENT_ID: "8185124618007618416",
+            HTTP_HEADER_SAMPLING_PRIORITY: "0",
         },
     ),
     (
@@ -615,6 +718,16 @@ INJECT_FIXTURES = [
         },
     ),
     (
+        "valid_b3_style_auto_reject",
+        [PROPAGATION_STYLE_B3],
+        VALID_AUTO_REJECT_CONTEXT,
+        {
+            HTTP_HEADER_B3_TRACE_ID: "b5a2814f70060771",
+            HTTP_HEADER_B3_SPAN_ID: "7197677932a62370",
+            HTTP_HEADER_B3_SAMPLED: "0",
+        },
+    ),
+    (
         "valid_b3_style_no_sampling_priority",
         [PROPAGATION_STYLE_B3],
         {
@@ -638,6 +751,12 @@ INJECT_FIXTURES = [
         [PROPAGATION_STYLE_B3_SINGLE_HEADER],
         VALID_USER_KEEP_CONTEXT,
         {HTTP_HEADER_B3_SINGLE: "b5a2814f70060771-7197677932a62370-d"},
+    ),
+    (
+        "valid_b3_single_style_auto_reject",
+        [PROPAGATION_STYLE_B3_SINGLE_HEADER],
+        VALID_AUTO_REJECT_CONTEXT,
+        {HTTP_HEADER_B3_SINGLE: "b5a2814f70060771-7197677932a62370-0"},
     ),
     (
         "valid_b3_single_style_no_sampling_priority",
@@ -676,6 +795,20 @@ INJECT_FIXTURES = [
             HTTP_HEADER_B3_SPAN_ID: "7197677932a62370",
             HTTP_HEADER_B3_FLAGS: "1",
             HTTP_HEADER_B3_SINGLE: "b5a2814f70060771-7197677932a62370-d",
+        },
+    ),
+    (
+        "valid_all_styles_auto_reject",
+        PROPAGATION_STYLE_ALL,
+        VALID_AUTO_REJECT_CONTEXT,
+        {
+            HTTP_HEADER_TRACE_ID: "13088165645273925489",
+            HTTP_HEADER_PARENT_ID: "8185124618007618416",
+            HTTP_HEADER_SAMPLING_PRIORITY: "0",
+            HTTP_HEADER_B3_TRACE_ID: "b5a2814f70060771",
+            HTTP_HEADER_B3_SPAN_ID: "7197677932a62370",
+            HTTP_HEADER_B3_SAMPLED: "0",
+            HTTP_HEADER_B3_SINGLE: "b5a2814f70060771-7197677932a62370-0",
         },
     ),
     (
@@ -723,3 +856,14 @@ print(json.dumps(headers))
 
     result = json.loads(stdout.decode())
     assert result == expected_headers
+
+    # Setting via ddtrace.config works as expected too
+    # DEV: This also helps us get code coverage reporting
+    overrides = {}
+    if styles is not None:
+        overrides["propagation_style_inject"] = set(styles)
+    with override_global_config(overrides):
+        ctx = Context(**context)
+        headers = {}
+        HTTPPropagator.inject(ctx, headers)
+        assert headers == expected_headers

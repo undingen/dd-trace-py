@@ -19,7 +19,7 @@ from .integration import IntegrationConfig
 log = get_logger(__name__)
 
 
-def _parse_propagation_styles(name, default=PROPAGATION_STYLE_DATADOG):
+def _parse_propagation_styles(name, default):
     # type: (str, str) -> set[str]
     """Helper to parse http propagation extract/inject styles via env variables.
 
@@ -186,8 +186,12 @@ class Config(object):
         self.health_metrics_enabled = asbool(os.getenv("DD_TRACE_HEALTH_METRICS_ENABLED", default=False))
 
         # Propagation styles
-        self.propagation_style_extract = _parse_propagation_styles("DD_TRACE_PROPAGATION_STYLE_EXTRACT")
-        self.propagation_style_inject = _parse_propagation_styles("DD_TRACE_PROPAGATION_STYLE_INJECT")
+        self.propagation_style_extract = _parse_propagation_styles(
+            "DD_TRACE_PROPAGATION_STYLE_EXTRACT", default=PROPAGATION_STYLE_DATADOG
+        )
+        self.propagation_style_inject = _parse_propagation_styles(
+            "DD_TRACE_PROPAGATION_STYLE_INJECT", default=PROPAGATION_STYLE_DATADOG
+        )
 
         # Raise certain errors only if in testing raise mode to prevent crashing in production with non-critical errors
         self._raise = asbool(os.getenv("DD_TESTING_RAISE", False))
