@@ -72,9 +72,7 @@ def _b3_id_to_dd_id(b3_id):
 
     "463ac35c9f6413ad48485a3953bb6124" -> "48485a3953bb6124" -> 5208512171318403364
     """
-    if len(b3_id) > 16:
-        return int(b3_id[-16:], 16)
-    return int(b3_id, 16)
+    return int(b3_id[-16:], 16)
 
 
 def _dd_id_to_b3_id(dd_id):
@@ -82,7 +80,7 @@ def _dd_id_to_b3_id(dd_id):
     """Helper to convert Datadog trace/span int ids into B3 compatible hex ids"""
     # DEV: `hex(dd_id)` will give us `0xDEADBEEF`
     # DEV: this gives us lowercase hex, which is what we want
-    return "{:x}".format(dd_id)
+    return hex(dd_id)[2:]
 
 
 def _inject_datadog(span_context, headers):
@@ -261,7 +259,7 @@ def _extract_b3_single_header(headers):
     trace_id_val = None
     span_id_val = None
     if len(parts) == 1:
-        sampled = parts[0]
+        sampled, = parts
     elif len(parts) == 2:
         trace_id_val, span_id_val = parts
     elif len(parts) >= 3:
