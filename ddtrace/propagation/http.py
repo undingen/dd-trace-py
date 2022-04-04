@@ -259,7 +259,7 @@ def _extract_b3_single_header(headers):
     trace_id_val = None
     span_id_val = None
     if len(parts) == 1:
-        sampled, = parts
+        (sampled,) = parts
     elif len(parts) == 2:
         trace_id_val, span_id_val = parts
     elif len(parts) >= 3:
