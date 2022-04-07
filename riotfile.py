@@ -192,6 +192,7 @@ venv = Venv(
                 "reno[sphinx]": latest,
                 "sphinx": "~=4.3.2",
                 "sphinxcontrib-spelling": latest,
+                "sphinxemoji": latest,
                 "PyEnchant": latest,
             },
             command="scripts/build-docs",
