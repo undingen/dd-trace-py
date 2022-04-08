@@ -1,6 +1,7 @@
 Upgrading
 ---------
 
+.. _upgrading-1.x:
 
 Upgrading to 1.x
 ^^^^^^^^^^^^^^^^

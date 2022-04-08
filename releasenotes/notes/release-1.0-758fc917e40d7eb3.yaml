@@ -18,7 +18,8 @@ prelude: >
     Before upgrading to v1.0.0, we recommend users install
     ``ddtrace>=0.60.0,<1.0.0`` and enable deprecation warnings. All removals to
     the library interface and environment variables were deprecated on 0.x
-    branch. Consult `Upgrading to 1.x`_ for recommendations on migrating.
+    branch. Consult :ref:`Upgrading to 1.x<upgrading-1.x>` for recommendations
+    on migrating.
 
 
   .. note::
