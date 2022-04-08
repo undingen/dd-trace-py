@@ -65,13 +65,7 @@ class VersionTagFilter(Filter):
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.extlinks",
-    "reno.sphinxext",
-    "sphinxcontrib.spelling",
-    "sphinxemoji.sphinxemoji",
-]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.extlinks", "reno.sphinxext", "sphinxcontrib.spelling"]
 
 # Add filters for sphinxcontrib.spelling
 spelling_filters = [VersionTagFilter]
