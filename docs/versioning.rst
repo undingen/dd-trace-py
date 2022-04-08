@@ -23,8 +23,33 @@ Release support
      - 7.28
 
 
-Versions
-========
+.. _versioning_support_levels:
+
+Support levels
+==============
+
+
+.. list-table::
+   :header-rows: 1
+
+   * - Level
+     - Policy
+
+       .. _versioning_support_ga:
+   * - General Availability (GA)
+     - Full implementation of all features. Full support for new features, bug and security fixes.
+
+       .. _versioning_support_maintenace:
+   * - Maintenance
+     - Full implementation of existing features. Does not receive new features. Support for critical bug fixes and security fixes only.
+   * - End-of-life
+     - No support.
+
+
+.. _versioning_release:
+
+Release versions
+================
 
 
 The non-negative integer components of the **version format** (``v<MAJOR>.<MINOR>.<PATCH>``) are incremented by the criteria:
@@ -95,26 +120,3 @@ Supported runtimes
      - CPython
      - 2.7, 3.5-3.10
      - 1.x
-
-
-.. _versioning_support_levels:
-
-Support levels
-==============
-
-
-.. list-table::
-   :header-rows: 1
-
-   * - Level
-     - Policy
-
-       .. _versioning_support_ga:
-   * - General Availability (GA)
-     - Full implementation of all features. Full support for new features, bug & security fixes.
-
-       .. _versioning_support_maintenace:
-   * - Maintenance
-     - Full implementation of existing features. Does not receive new features. Support for bug & security fixes only.
-   * - End-of-life
-     - No support.

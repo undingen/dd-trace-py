@@ -1,26 +1,24 @@
 ---
 prelude: >
   The Datadog APM Python team is happy to announce the release of v1.0.0 of
-  ddtrace. This release simplifies the public
-  :ref:`interface<versioning_interfaces>` and introduces a formal
-  :ref:`versioning policy<versioning>`. These changes unlock future performance
-  improvements and new features while ensuring backwards compatibility for
-  users.
+  ddtrace. This release introduces a formal :ref:`versioning policy<versioning>`
+  that simplifies the public :ref:`interface<versioning_interfaces>` and defines
+  a :ref:`release version policy<versioning_release>` for backwards compatible
+  and incompatible changes to the public interface.
 
 
   The v1.0.0 release is an important milestone for the library as it has grown
   substantially in scope. The first commit to the library was made on June 20,
-  2016. Nearly sixty minor releases later, the library now includes over 60
-  integrations for libraries and has expanded from tracing to
-  support the Continuous Profiler and CI Visibility.
+  2016. Nearly sixty minor releases later, the library now includes over sixty
+  integrations for libraries. And has expanded from Tracing to support the
+  Continuous Profiler and CI Visibility.
 
 
   .. important::
     Before upgrading to v1.0.0, we recommend users install
     ``ddtrace>=0.60.0,<1.0.0`` and enable deprecation warnings. All removals to
     the library interface and environment variables were deprecated on 0.x
-    branch. For more on migrating to 1.x, consult :ref:`Upgrading from 0.x to
-    1.x<upgrade-0.x>`.
+    branch. Consult `Upgrading to 1.x`_ for recommendations on migrating.
 
 
   .. note::
@@ -170,20 +168,23 @@ prelude: >
 
   .. list-table::
     :header-rows: 1
-    :widths: 45, 45, 10
+    :widths: 45, 50, 5
 
     * - Module
-      - Function
-      - Note
+      - Function/Class
+      -
     * - ``ddtrace.contrib.cassandra``
       - ``get_traced_cassandra``
       - :ref:`📝<remove-cassandra-traced>`
     * - ``ddtrace.contrib.celery``
       - ``patch_task``
       - :ref:`📝<remove-celery-patch-task>`
-    * -
+    * - ``ddtrace.contrib.celery``
       - ``unpatch_task``
       - :ref:`📝<remove-celery-unpatch-task>`
+    * - ``ddtrace.contrib.flask``
+      - ``middleware.TraceMiddleware``
+      - :ref:`📝<remove-flask-middleware>`
     * - ``ddtrace.contrib.mongoengine``
       - ``trace_mongoengine``
       - :ref:`📝<remove-mongoengine-traced>`
@@ -193,9 +194,21 @@ prelude: >
     * - ``ddtrace.contrib.psycopg``
       - ``connection_factory``
       - :ref:`📝<remove-psycopg-legacy>`
+    * - ``ddtrace.contrib.pymongo``
+      - ``patch.trace_mongo_client``
+      - :ref:`📝<remove-pymongo-client>`
+    * - ``ddtrace.contrib.pymysql``
+      - ``tracers.get_traced_pymysql_connection``
+      - :ref:`📝<remove-pymysql-connection>`
     * - ``ddtrace.contrib.requests``
       - ``legacy``
       - :ref:`📝<remove-requests-legacy-distributed>`
+    * - ``ddtrace.contrib.redis``
+      - ``tracers.get_traced_redis``
+      - :ref:`📝<remove-redis-traced>`
+    * - ``ddtrace.contrib.redis``
+      - ``tracers.get_traced_redis_from``
+      - :ref:`📝<remove-redis-traced-from>`
     * - ``ddtrace.contrib.sqlite3``
       - ``connection_factory``
       - :ref:`📝<remove-sqlite3-legacy>`
@@ -208,7 +221,8 @@ prelude: >
   These modules have been removed. Many were moved to the internal interface as
   they were not intended to be used as part of the public interface. In these
   cases, no action is provided for upgrading. In a few cases, other modules are
-  provided as alternatives to maintain functionality.
+  provided as alternatives to maintain functionality. See the notes for more
+  information.
 
 
   .. list-table::
