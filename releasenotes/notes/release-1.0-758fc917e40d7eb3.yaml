@@ -10,7 +10,7 @@ prelude: >
   The v1.0.0 release is an important milestone for the library as it has grown
   substantially in scope. The first commit to the library was made on June 20,
   2016. Nearly sixty minor releases later, the library now includes over sixty
-  integrations for libraries. And has expanded from Tracing to support the
+  integrations for libraries. And the library has expanded from Tracing to support the
   Continuous Profiler and CI Visibility.
 
 
